@@ -13,6 +13,7 @@ API: https://api.wolfx.jp
 ## 下载
 
 *   [GitHub Releases](https://github.com/TenkyuChimata/SCEEW/releases/latest)
+*   [蓝奏云](https://akarin.lanzoul.com/i3lED1481erg)
 
 ## 截图
 
