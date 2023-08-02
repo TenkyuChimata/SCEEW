@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import vlc
 import json
 import time
 import math
@@ -8,15 +7,17 @@ import requests
 import traceback
 import threading
 import webbrowser
+from playsound import playsound
 from PyQt6.QtCore import QTimer,Qt
 from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QImage, QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStyle, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.0"
+version = "1.0.1"
 EventID = None
 config_updated = False
 url = "https://api.wolfx.jp/sc_eew.json"
+#url = "http://127.0.0.1/sc_eew.json"
 version_url = "https://tenkyuchimata.github.io/SCEEW/version.json"
 headers = {"User-Agent": f"SCEEW/{version}"}
 settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value = None, None, None, None, None, None
@@ -244,21 +245,17 @@ def closeEvent(event):
 def alert(types, lv):
     try:
         if types == "scint":
-            vlcplay = vlc.MediaPlayer("./assets/sounds/alert.wav")
-            vlcplay.play()
-            time.sleep(1)
-            vlcplay.stop()
+            thread5 = threading.Thread(target = playsound, args = (".//assets//sounds//alert.wav", ))
+            thread5.start()
+            time.sleep(1.2)
             if lv:
-                vlcplay = vlc.MediaPlayer(f"./assets/sounds/EEW{lv}.wav")
-                vlcplay.play()
-                time.sleep(1)
-                vlcplay.stop()
+                thread6 = threading.Thread(target = playsound, args = (f".//assets//sounds//EEW{lv}.wav", ))
+                thread6.start()
         else:
-            vlcplay = vlc.MediaPlayer("./assets/sounds/countdown.wav")
             for i in range(15):
-                vlcplay.play()
+                thread7 = threading.Thread(target = playsound, args = (".//assets//sounds//countdown.wav", ))
+                thread7.start()
                 time.sleep(1)
-                vlcplay.stop()
     except:
         error_report()
 
@@ -283,7 +280,7 @@ def countdown(user_location, distance, ctime):
         Sarrivetime = quaketime + timedelta(seconds = Stime)
         while cycle:
             s_countdown = (Sarrivetime - datetime.now()).seconds
-            if s_countdown <= 0 or s_countdown >= 1800:
+            if s_countdown <= 0 or s_countdown >= 1200:
                 s_countdown = 0
                 cycle = False
             if s_countdown:
@@ -291,8 +288,8 @@ def countdown(user_location, distance, ctime):
             else:
                 subcdinfo_text.setText(f"地震横波已抵达{user_location}")
             if s_countdown == 9:
-                thread7 = threading.Thread(target = alert, args = (0, 0, ))
-                thread7.start()
+                thread4 = threading.Thread(target = alert, args = (0, 0, ))
+                thread4.start()
             time.sleep(1)
     except:
         error_report()
@@ -338,24 +335,21 @@ def sceew(window):
                         window.activateWindow()
                     if config["audio"]:
                         if cnshindo >= 1.0 and cnshindo < 4.0:
-                            thread5 = threading.Thread(target = alert, args = ("scint", 1, ))
-                            thread5.start()
+                            alert("scint", 1)
                         elif cnshindo >= 4.0:
-                            thread5 = threading.Thread(target = alert, args = ("scint", 2, ))
-                            thread5.start()
+                            alert("scint", 2)
                         else:
-                            thread5 = threading.Thread(target = alert, args = ("scint", 0, ))
-                            thread5.start()
+                            alert("scint", 0)
                     if not is_eew:
                         is_eew = True
-                        thread6 = threading.Thread(target = countdown, args = (user_location, eqdistance, eqtime, ))
-                        thread6.start()
+                        thread3 = threading.Thread(target = countdown, args = (user_location, eqdistance, eqtime, ))
+                        thread3.start()
                 else:
                     subcdinfo_text.setText(f"地震横波已抵达{user_location}")
                 EventID = sceew_json["EventID"]
                 config_updated = False
             else:
-                if (datetime.now() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds >= 600:
+                if (datetime.now() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds >= 300:
                     is_eew = False
             time.sleep(1)
         except Exception as e:
