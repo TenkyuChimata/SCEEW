@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.2"
+version = "1.0.3"
 EventID = None
 config_updated = False
 url = "https://api.wolfx.jp/sc_eew.json"
@@ -24,8 +24,11 @@ settings_window, location_value, latitude_value, longitude_value, audio_value, a
 with open("errors.log", "w", encoding = "utf-8") as f:
     f.write("")
 
+def get_bjt():
+    return datetime.utcnow() + timedelta(hours = 8)
+
 def error_report():
-    error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S\n")
+    error_time = get_bjt().strftime("%Y-%m-%d %H:%M:%S\n")
     error_log = traceback.format_exc()
     print(error_time + error_log + "\n")
     with open("errors.log", "a", encoding = "utf-8") as f:
@@ -279,7 +282,7 @@ def countdown(user_location, distance, ctime):
         quaketime = datetime.strptime(ctime, "%Y-%m-%d %H:%M:%S")
         Sarrivetime = quaketime + timedelta(seconds = Stime)
         while cycle:
-            s_countdown = (Sarrivetime - datetime.now()).seconds
+            s_countdown = (Sarrivetime - get_bjt()).seconds
             if s_countdown <= 0 or s_countdown >= 1200:
                 s_countdown = 0
                 cycle = False
@@ -297,7 +300,7 @@ def countdown(user_location, distance, ctime):
 def timer():
     while True:
         try:
-            info_text.setText(f"四川地震局  {datetime.now().strftime('%H:%M:%S')}  中国地震预警网")
+            info_text.setText(f"四川地震局  {get_bjt().strftime('%H:%M:%S')}  中国地震预警网")
         except:
             error_report()
             continue
@@ -349,7 +352,7 @@ def sceew(window):
                 EventID = sceew_json["EventID"]
                 config_updated = False
             else:
-                if (datetime.now() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds >= 300:
+                if (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds >= 300:
                     is_eew = False
             time.sleep(1)
         except Exception as e:
