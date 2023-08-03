@@ -6,18 +6,18 @@ import math
 import requests
 import traceback
 import threading
+import playsound
 import webbrowser
-from playsound import playsound
-from PyQt6.QtCore import QTimer,Qt
+from PyQt6.QtCore import Qt
 from datetime import datetime, timedelta
-from PyQt6.QtGui import QPixmap, QIcon, QImage, QFont, QFontDatabase
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QStyle, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
+from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.1"
+version = "1.0.2"
 EventID = None
 config_updated = False
 url = "https://api.wolfx.jp/sc_eew.json"
-#url = "http://127.0.0.1/sc_eew.json"
+url = "http://127.0.0.1/sc_eew.json"
 version_url = "https://tenkyuchimata.github.io/SCEEW/version.json"
 headers = {"User-Agent": f"SCEEW/{version}"}
 settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value = None, None, None, None, None, None
@@ -245,15 +245,15 @@ def closeEvent(event):
 def alert(types, lv):
     try:
         if types == "scint":
-            thread5 = threading.Thread(target = playsound, args = (".//assets//sounds//alert.wav", ))
+            thread5 = threading.Thread(target = playsound.playsound, args = (".//assets//sounds//alert.wav", ))
             thread5.start()
             time.sleep(1.2)
             if lv:
-                thread6 = threading.Thread(target = playsound, args = (f".//assets//sounds//EEW{lv}.wav", ))
+                thread6 = threading.Thread(target = playsound.playsound, args = (f".//assets//sounds//EEW{lv}.wav", ))
                 thread6.start()
         else:
             for i in range(15):
-                thread7 = threading.Thread(target = playsound, args = (".//assets//sounds//countdown.wav", ))
+                thread7 = threading.Thread(target = playsound.playsound, args = (".//assets//sounds//countdown.wav", ))
                 thread7.start()
                 time.sleep(1)
     except:
