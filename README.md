@@ -11,7 +11,7 @@ API: https://api.wolfx.jp
 **版权所有 (C) Wolfx Studio.**
 
 ## 使用
-SCEEW 全平台可用, 为方便Windows用户, 我们已提供exe封装版
+SCEEW全平台可用, 为方便Windows用户, 我们已提供exe封装版
 
 如果要在Windows以外的平台中使用, 请按照以下流程进行安装
 
@@ -25,7 +25,7 @@ pip3 install -r requirements.txt
 
 最后执行`python3 SCEEW.py`即可启动SCEEW
 
-## 下载
+## Windows版下载
 
 *   [GitHub Releases](https://github.com/TenkyuChimata/SCEEW/releases/latest)
 *   [蓝奏云(密码c4jt)](https://akarin.lanzoul.com/b00rbwxgf)
