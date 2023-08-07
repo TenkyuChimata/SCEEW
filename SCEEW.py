@@ -216,7 +216,7 @@ def open_settings_window():
         if settings_window is None:
             settings_window = QWidget()
             settings_window.setWindowTitle("设定")
-            settings_window.setWindowIcon(QIcon("./assets/images/icon.png"))
+            settings_window.setWindowIcon(QIcon("./assets/images/icon.ico"))
             settings_window.setStyleSheet("background-color: #808080;")
             settings_window.setFixedSize(600, 400)
             layout = QVBoxLayout()
@@ -374,7 +374,7 @@ def sceew(window):
                         thread3.start()
                     if config["notification"]:
                         title = f"四川地震预警（第{reportnum}报）"
-                        notification.notify(title = title, message = message)
+                        notification.notify(title = title, message = message, app_name = f"四川地震预警(SCEEW) v{version}", app_icon = "./assets/images/icon.ico")
                 else:
                     subcdinfo_text.setText(f"地震横波已抵达{user_location}")
                 EventID = sceew_json["EventID"]
@@ -394,7 +394,7 @@ if __name__ == '__main__':
         window = QMainWindow()
         window.setWindowTitle(f"四川地震预警(SCEEW) v{version}")
         window.setFixedSize(600, 400)
-        window.setWindowIcon(QIcon("./assets/images/icon.png"))
+        window.setWindowIcon(QIcon("./assets/images/icon.ico"))
         updater(window)
         window.setStyleSheet("background-color: #808080;")
         central_widget = QWidget()
