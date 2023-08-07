@@ -6,21 +6,23 @@ import math
 import requests
 import traceback
 import threading
-import playsound
 import webbrowser
+from pygame import mixer
 from PyQt6.QtCore import Qt
+from plyer import notification
 from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.3"
+version = "1.0.4"
 EventID = None
+audio_bool = True
 config_updated = False
 url = "https://api.wolfx.jp/sc_eew.json"
 #url = "http://127.0.0.1/sc_eew.json"
 version_url = "https://tenkyuchimata.github.io/SCEEW/version.json"
 headers = {"User-Agent": f"SCEEW/{version}"}
-settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value = None, None, None, None, None, None
+settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None, None
 with open("errors.log", "w", encoding = "utf-8") as f:
     f.write("")
 
@@ -45,7 +47,7 @@ def updater(window):
                 closeEvent(None)
     except:
         error_report()
-    return
+    return None
 
 def set_font(label, font_size):
     try:
@@ -63,28 +65,34 @@ def get_config():
         if os.path.exists("config.json"):
             with open("config.json", "r", encoding="utf-8") as f:
                 config_data = json.load(f)
+            config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], config_data["latitude"], config_data["longitude"], 
+            return config_data
         else:
-            config_data = {
-                "audio": True,
-                "auto_window": True,
-                "location": "成都市青羊区",
-                "latitude": 30.68,
-                "longitude": 104.05
-            }
-            with open("config.json", "w", encoding = "utf-8") as f:
-                json.dump(config_data, f, ensure_ascii = False)
+            raise KeyError("Incomplete")
+    except KeyError:
+        config_data = {
+            "audio": True,
+            "auto_window": True,
+            "notification": True,
+            "location": "成都市青羊区",
+            "latitude": 30.68,
+            "longitude": 104.05
+        }
+        with open("config.json", "w", encoding = "utf-8") as f:
+            json.dump(config_data, f, ensure_ascii = False)
         return config_data
     except:
         error_report()
         return None
 
 def saveSettings(event):
-    global location_value, latitude_value, longitude_value, audio_value, auto_window_value, config_updated
+    global location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value, config_updated
     try:
         if location_value:
             config_data = {
                 "audio": audio_value,
                 "auto_window": auto_window_value,
+                "notification": notification_value,
                 "location": location_value,
                 "latitude": latitude_value,
                 "longitude": longitude_value
@@ -92,13 +100,14 @@ def saveSettings(event):
             with open("config.json", "w", encoding = "utf-8") as f:
                 json.dump(config_data, f, ensure_ascii = False)
             config_updated = True
-            location_value, latitude_value, longitude_value, audio_value, auto_window_value = None, None, None, None, None
+            location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None
     except:
         error_report()
 
-def settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox):
-    global location_value, latitude_value, longitude_value, audio_value, auto_window_value
+def settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox):
+    global location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value
     try:
+        notification_value = notification_checkbox.isChecked()
         audio_value = audio_checkbox.isChecked()
         auto_window_value = auto_window_checkbox.isChecked()
         if location_input.text() != "":
@@ -124,15 +133,20 @@ def create_general_tab():
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
         config = get_config()
-        audio_checkbox = QCheckBox("播放预警音效")
+        notification_checkbox = QCheckBox("启用通知")
+        notification_checkbox.setChecked(config["notification"])
+        notification_checkbox.setStyleSheet("color: white;")
+        notification_checkbox.stateChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
+        group_layout.addWidget(notification_checkbox)
+        audio_checkbox = QCheckBox("启用音效")
         audio_checkbox.setChecked(config["audio"])
         audio_checkbox.setStyleSheet("color: white;")
-        audio_checkbox.stateChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox))
+        audio_checkbox.stateChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
         group_layout.addWidget(audio_checkbox)
         auto_window_checkbox = QCheckBox("收到预警时自动弹出窗口")
         auto_window_checkbox.setChecked(config["auto_window"])
         auto_window_checkbox.setStyleSheet("color: white;")
-        auto_window_checkbox.stateChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox))
+        auto_window_checkbox.stateChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
         group_layout.addWidget(auto_window_checkbox)
         location_label = QLabel("所在地名")
         set_font(location_label, 12)
@@ -141,7 +155,7 @@ def create_general_tab():
         location_input.setText(config["location"])
         location_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         location_input.setFixedWidth(150)
-        location_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox))
+        location_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
         latitude_label = QLabel("所在地纬度")
         set_font(latitude_label, 12)
         latitude_label.setStyleSheet("color: white;")
@@ -149,7 +163,7 @@ def create_general_tab():
         latitude_input.setText(str(config["latitude"]))
         latitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         latitude_input.setFixedWidth(150)
-        latitude_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox))
+        latitude_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
         longitude_label = QLabel("所在地经度")
         set_font(longitude_label, 12)
         longitude_label.setStyleSheet("color: white;")
@@ -157,7 +171,7 @@ def create_general_tab():
         longitude_input.setText(str(config["longitude"]))
         longitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         longitude_input.setFixedWidth(150)
-        longitude_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox))
+        longitude_input.textChanged.connect(lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox, notification_checkbox))
         input_layout = QVBoxLayout()
         input_layout.addWidget(location_label)
         input_layout.addWidget(location_input)
@@ -247,20 +261,24 @@ def closeEvent(event):
 
 def alert(types, lv):
     try:
-        if types == "scint":
-            thread5 = threading.Thread(target = playsound.playsound, args = (".//assets//sounds//alert.wav", ))
-            thread5.start()
-            time.sleep(1.2)
-            if lv:
-                thread6 = threading.Thread(target = playsound.playsound, args = (f".//assets//sounds//EEW{lv}.wav", ))
-                thread6.start()
-        else:
-            for i in range(15):
-                thread7 = threading.Thread(target = playsound.playsound, args = (".//assets//sounds//countdown.wav", ))
-                thread7.start()
-                time.sleep(1)
+        if audio_bool:
+            mixer.init()
+            if types:
+                mixer.music.load(f".//assets//sounds//EEW{lv}.wav")
+                mixer.music.play()
+                while mixer.music.get_busy():
+                    time.sleep(0.1)
+                mixer.quit()
+            else:
+                for i in range(15):
+                    mixer.music.load(".//assets//sounds//countdown.wav")
+                    mixer.music.play()
+                    while mixer.music.get_busy():
+                        time.sleep(0.01)
+                mixer.quit()
     except:
         error_report()
+        mixer.quit()
 
 def distance(lat1, lon1, lat2, lon2):
     try:
@@ -291,8 +309,8 @@ def countdown(user_location, distance, ctime):
             else:
                 subcdinfo_text.setText(f"地震横波已抵达{user_location}")
             if s_countdown == 9:
-                thread4 = threading.Thread(target = alert, args = (0, 0, ))
-                thread4.start()
+                thread5 = threading.Thread(target = alert, args = (False, 0, ))
+                thread5.start()
             time.sleep(1)
     except:
         error_report()
@@ -308,12 +326,13 @@ def timer():
 
 def sceew(window):
     is_eew = False
-    global EventID, config_updated
+    global EventID, config_updated, audio_bool
     while True:
         try:
             sceew_json = requests.get(url, headers = headers, timeout = 3).json()
             if sceew_json["EventID"] != EventID or config_updated:
                 config = get_config()
+                audio_bool = config["audio"]
                 user_location = config["location"]
                 eqtime = sceew_json["OriginTime"]
                 location = sceew_json["HypoCenter"]
@@ -336,17 +355,23 @@ def sceew(window):
                 if EventID != None and not config_updated:
                     if config["auto_window"]:
                         window.activateWindow()
-                    if config["audio"]:
-                        if cnshindo >= 1.0 and cnshindo < 4.0:
-                            alert("scint", 1)
-                        elif cnshindo >= 4.0:
-                            alert("scint", 2)
-                        else:
-                            alert("scint", 0)
+                    if cnshindo >= 1.0 and cnshindo < 4.0:
+                        thread4 = threading.Thread(target = alert, args = (True, 1, ))
+                        thread4.start()
+                    elif cnshindo >= 4.0:
+                        thread4 = threading.Thread(target = alert, args = (True, 2, ))
+                        thread4.start()
+                    else:
+                        thread4 = threading.Thread(target = alert, args = (True, 0, ))
+                        thread4.start()
                     if not is_eew:
                         is_eew = True
                         thread3 = threading.Thread(target = countdown, args = (user_location, eqdistance, eqtime, ))
                         thread3.start()
+                    if config["notification"]:
+                        title = f"四川地震预警（第{reportnum}报）"
+                        message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度，有强烈震感，请合理避险！"
+                        notification.notify(title = title, message = message)
                 else:
                     subcdinfo_text.setText(f"地震横波已抵达{user_location}")
                 EventID = sceew_json["EventID"]
