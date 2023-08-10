@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.4"
+version = "1.0.5"
 EventID = None
 audio_bool = True
 config_updated = False
@@ -65,7 +65,7 @@ def get_config():
         if os.path.exists("config.json"):
             with open("config.json", "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-            config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], config_data["latitude"], config_data["longitude"], 
+            config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], config_data["latitude"], config_data["longitude"]
             return config_data
         else:
             raise KeyError("Incomplete")
@@ -268,14 +268,13 @@ def alert(types, lv):
                 mixer.music.play()
                 while mixer.music.get_busy():
                     time.sleep(0.1)
-                mixer.quit()
             else:
+                mixer.music.load(".//assets//sounds//countdown.wav")
                 for i in range(15):
-                    mixer.music.load(".//assets//sounds//countdown.wav")
                     mixer.music.play()
                     while mixer.music.get_busy():
                         time.sleep(0.01)
-                mixer.quit()
+            mixer.quit()
     except:
         error_report()
         mixer.quit()
@@ -380,10 +379,10 @@ def sceew(window):
                 EventID = sceew_json["EventID"]
                 config_updated = False
             else:
-                if (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds >= 300:
+                if is_eew and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds > 300:
                     is_eew = False
             time.sleep(1)
-        except Exception as e:
+        except:
             error_report()
             time.sleep(1)
             continue
