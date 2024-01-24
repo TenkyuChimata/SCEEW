@@ -381,6 +381,7 @@ async def sceew(window):
                                 notification.notify(title = title, message = message, app_name = f"四川地震预警(SCEEW) v{version}", app_icon = "./assets/images/icon.ico")
                         else:
                             subcdinfo_text.setText(f"地震横波已抵达{user_location}")
+                        config_updated = False
                     else:
                         if is_eew and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds > 300:
                             is_eew = False
