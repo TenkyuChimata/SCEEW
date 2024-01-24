@@ -3,9 +3,11 @@ import os
 import json
 import time
 import math
+import asyncio
 import requests
 import traceback
 import threading
+import websockets
 import webbrowser
 from pygame import mixer
 from PyQt6.QtCore import Qt
@@ -14,14 +16,11 @@ from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QGroupBox, QLineEdit, QCheckBox, QMessageBox
 
-version = "1.0.5"
-EventID = None
+version = "1.1.0"
+websocket = None
 audio_bool = True
 config_updated = False
-url = "https://api.wolfx.jp/sc_eew.json"
-#url = "http://127.0.0.1/sc_eew.json"
 version_url = "https://tenkyuchimata.github.io/SCEEW/version.json"
-headers = {"User-Agent": f"SCEEW/{version}"}
 settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None, None
 with open("errors.log", "w", encoding = "utf-8") as f:
     f.write("")
@@ -38,9 +37,9 @@ def error_report():
 
 def updater(window):
     try:
-        version_json = requests.get(version_url, headers = headers, timeout = 5).json()
+        version_json = requests.get(version_url, timeout = 5).json()
         latest_version = version_json["version"]
-        if latest_version != version:
+        if int(latest_version.replace(".", "")) > int(version.replace(".", "")):
             reply = QMessageBox.question(window, f"四川地震预警(SCEEW) v{version}", f"检测到新版本v{latest_version}, 是否前往更新?")
             if reply == QMessageBox.StandardButton.Yes:
                 webbrowser.open("https://github.com/TenkyuChimata/SCEEW/releases")
@@ -100,6 +99,8 @@ def saveSettings(event):
             with open("config.json", "w", encoding = "utf-8") as f:
                 json.dump(config_data, f, ensure_ascii = False)
             config_updated = True
+            if websocket:
+                asyncio.run(websocket.send("query_sceew"))
             location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None
     except:
         error_report()
@@ -323,65 +324,66 @@ def timer():
             continue
         time.sleep(1)
 
-def sceew(window):
+async def sceew(window):
     is_eew = False
-    global EventID, config_updated, audio_bool
+    global audio_bool, config_updated, websocket
     while True:
         try:
-            sceew_json = requests.get(url, headers = headers, timeout = 3).json()
-            if sceew_json["EventID"] != EventID or config_updated:
-                config = get_config()
-                audio_bool = config["audio"]
-                user_location = config["location"]
-                eqtime = sceew_json["OriginTime"]
-                location = sceew_json["HypoCenter"]
-                magnitude = sceew_json["Magunitude"]
-                eqdistance = distance(sceew_json["Latitude"], sceew_json["Longitude"], config["latitude"], config["longitude"])
-                maxshindo = sceew_json["MaxIntensity"]
-                reportnum = sceew_json["ReportNum"]
-                cnshindo = max(1.92 + 1.63 * magnitude - 3.49 * math.log(eqdistance, 10), 0.0)
-                eqloc_text.setText(f"震中\n{location}\n{int(eqdistance)}km")
-                eqmag_text.setText(f"震级\nM{magnitude}\n烈度{maxshindo}")
-                eqtime_text.setText(f"时间\n{eqtime[0:10].replace('-', '.')}\n{eqtime[-8:]}")
-                if cnshindo >= 1.0 and cnshindo < 2.0:
-                    tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有轻微震感，无需采取措施")
-                    message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有轻微震感，无需采取措施。"
-                elif cnshindo >= 2.0 and cnshindo < 4.0:
-                    tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有较强震感，请合理避险")
-                    message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有较强震感，请合理避险！"
-                elif cnshindo >= 4.0:
-                    tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有强烈震感，请合理避险")
-                    message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有强烈震感，请合理避险！"
-                else:
-                    tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，无震感，无需采取措施")
-                    message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"
-                if EventID != None and not config_updated:
-                    if config["auto_window"]:
-                        window.activateWindow()
-                    if cnshindo >= 1.0 and cnshindo < 4.0:
-                        thread4 = threading.Thread(target = alert, args = (True, 1, ))
-                        thread4.start()
-                    elif cnshindo >= 4.0:
-                        thread4 = threading.Thread(target = alert, args = (True, 2, ))
-                        thread4.start()
+            async with websockets.connect("wss://ws-api.wolfx.jp/sc_eew") as websocket:
+                await websocket.send("query_sceew")
+                while True:
+                    sceew_json = json.loads(await websocket.recv())
+                    if sceew_json["type"] != "heartbeat":
+                        print(sceew_json)
+                        config = get_config()
+                        audio_bool = config["audio"]
+                        user_location = config["location"]
+                        eqtime = sceew_json["OriginTime"]
+                        location = sceew_json["HypoCenter"]
+                        magnitude = sceew_json["Magunitude"]
+                        eqdistance = distance(sceew_json["Latitude"], sceew_json["Longitude"], config["latitude"], config["longitude"])
+                        maxshindo = sceew_json["MaxIntensity"]
+                        reportnum = sceew_json["ReportNum"]
+                        cnshindo = max(1.92 + 1.63 * magnitude - 3.49 * math.log(eqdistance, 10), 0.0)
+                        eqloc_text.setText(f"震中\n{location}\n{int(eqdistance)}km")
+                        eqmag_text.setText(f"震级\nM{magnitude}\n烈度{maxshindo}")
+                        eqtime_text.setText(f"时间\n{eqtime[0:10].replace('-', '.')}\n{eqtime[-8:]}")
+                        if cnshindo >= 1.0 and cnshindo < 2.0:
+                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有轻微震感，无需采取措施")
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有轻微震感，无需采取措施。"
+                        elif cnshindo >= 2.0 and cnshindo < 4.0:
+                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有较强震感，请合理避险")
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有较强震感，请合理避险！"
+                        elif cnshindo >= 4.0:
+                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有强烈震感，请合理避险")
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有强烈震感，请合理避险！"
+                        else:
+                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，无震感，无需采取措施")
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"
+                        if not config_updated and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds < 300:
+                            if config["auto_window"]:
+                                window.activateWindow()
+                            if cnshindo >= 1.0 and cnshindo < 4.0:
+                                thread4 = threading.Thread(target = alert, args = (True, 1, ))
+                                thread4.start()
+                            elif cnshindo >= 4.0:
+                                thread4 = threading.Thread(target = alert, args = (True, 2, ))
+                                thread4.start()
+                            else:
+                                thread4 = threading.Thread(target = alert, args = (True, 0, ))
+                                thread4.start()
+                            if not is_eew:
+                                is_eew = True
+                                thread3 = threading.Thread(target = countdown, args = (user_location, eqdistance, eqtime, ))
+                                thread3.start()
+                            if config["notification"]:
+                                title = f"四川地震预警（第{reportnum}报）"
+                                notification.notify(title = title, message = message, app_name = f"四川地震预警(SCEEW) v{version}", app_icon = "./assets/images/icon.ico")
+                        else:
+                            subcdinfo_text.setText(f"地震横波已抵达{user_location}")
                     else:
-                        thread4 = threading.Thread(target = alert, args = (True, 0, ))
-                        thread4.start()
-                    if not is_eew:
-                        is_eew = True
-                        thread3 = threading.Thread(target = countdown, args = (user_location, eqdistance, eqtime, ))
-                        thread3.start()
-                    if config["notification"]:
-                        title = f"四川地震预警（第{reportnum}报）"
-                        notification.notify(title = title, message = message, app_name = f"四川地震预警(SCEEW) v{version}", app_icon = "./assets/images/icon.ico")
-                else:
-                    subcdinfo_text.setText(f"地震横波已抵达{user_location}")
-                EventID = sceew_json["EventID"]
-                config_updated = False
-            else:
-                if is_eew and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds > 300:
-                    is_eew = False
-            time.sleep(1)
+                        if is_eew and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds > 300:
+                            is_eew = False
         except:
             error_report()
             time.sleep(1)
@@ -453,7 +455,7 @@ if __name__ == '__main__':
         window.show()
         thread1 = threading.Thread(target = timer)
         thread1.start()
-        thread2 = threading.Thread(target = sceew, args = (window, ))
+        thread2 = threading.Thread(target = asyncio.run, args = (sceew(window), ))
         thread2.start()
         app.exec()
     except:

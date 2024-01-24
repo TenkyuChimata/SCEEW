@@ -32,5 +32,4 @@ pip3 install -r requirements.txt
 
 ## 截图
 
-![1.png](https://s2.loli.net/2023/08/07/MZB5jFHcOQ41tsL.png)
-![2.png](https://s2.loli.net/2023/08/07/OQrsGuU2f3XCeY5.png)
+![1.png](https://s2.loli.net/2024/01/24/IFSslpGPe6MEtvw.png)
