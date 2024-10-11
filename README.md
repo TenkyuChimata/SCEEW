@@ -20,7 +20,7 @@ SCEEW全平台可用, 为方便Windows用户, 我们已提供exe封装版
 然后克隆本仓库并执行以下命令安装SCEEW的依赖库
 
 `
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 `
 
 最后执行`python SCEEW.py`即可启动SCEEW
