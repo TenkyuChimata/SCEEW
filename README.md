@@ -23,7 +23,7 @@ SCEEW全平台可用, 为方便Windows用户, 我们已提供exe封装版
 pip3 install -r requirements.txt
 `
 
-最后执行`python3 SCEEW.py`即可启动SCEEW
+最后执行`python SCEEW.py`即可启动SCEEW
 
 ## Windows版下载
 
