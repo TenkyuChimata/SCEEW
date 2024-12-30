@@ -1,6 +1,5 @@
 plyer>=2.1.0
-pygame>=2.5.2
-PyQt6>=6.7.1
-PyQt6_sip>=13.6.0
+pygame>=2.6.1
+PyQt6>=6.8.0
 Requests>=2.32.3
-websockets>=12.0
+websockets>=14.1
