@@ -6,24 +6,24 @@
 
 API: https://api.wolfx.jp
 
-**本软件基于GPL-3.0协议开源**
+**本软件基于 GPL-3.0 协议开源**
 
 **版权所有 (C) Wolfx Studio.**
 
 ## 使用
-SCEEW全平台可用, 为方便Windows用户, 我们已提供exe封装版
+SCEEW 全平台可用, 为方便 Windows 用户, 我们已提供 exe 封装版
 
-如果要在Windows以外的平台中使用, 请按照以下流程进行安装
+如果要在 Windows 以外的平台中使用, 请按照以下流程进行安装
 
-首先请确保拥有Python3环境, 推荐使用3.10及以上版本
+首先请确保拥有 Python3 环境, 推荐使用3.12及以上版本
 
-然后克隆本仓库并执行以下命令安装SCEEW的依赖库
+然后克隆本仓库并执行以下命令安装 SCEEW 的依赖库
 
 `
 pip install -r requirements.txt
 `
 
-最后执行`python SCEEW.py`即可启动SCEEW
+最后执行`python SCEEW.py`即可启动 SCEEW
 
 ## Windows版下载
 

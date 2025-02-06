@@ -50,7 +50,7 @@ from PyQt6.QtWidgets import (
     None,
 )  # noqa: E501
 with open("errors.log", "w", encoding="utf-8") as f:
-    pass  # 这里写了也没用, mode为w直接清了
+    pass
 
 
 def get_bjt():
@@ -99,8 +99,6 @@ def get_config():
         if os_path.exists("config.json"):
             with open("config.json", "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-            # config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], \
-            # config_data["latitude"], config_data["longitude"]  这是啥啊一点用没有
             return config_data
         else:
             raise KeyError("Incomplete")
@@ -313,7 +311,7 @@ def create_about_tab():
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
         label = QLabel(
-            f"感谢使用SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于GPL-3.0协议开源\n版权所有 (C) Wolfx Studio.\nGithub: https://github.com/TenkyuChimata/SCEEW"
+            f"感谢使用 SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于 GPL-3.0 协议开源\n版权所有 (C) Wolfx Studio.\nGithub: https://github.com/TenkyuChimata/SCEEW"
         )  # noqa: E501
         label.setStyleSheet("color: white;")
         set_font(label, 12)
