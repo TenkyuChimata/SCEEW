@@ -180,6 +180,11 @@ def settings_update(
     except:
         error_report()
 
+def open_coordinate_picker():
+    try:
+        webbrowser.open("https://lbs.qq.com/getPoint/")
+    except:
+        error_report()
 
 def create_general_tab():
     try:
@@ -294,6 +299,19 @@ def create_general_tab():
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
         group_layout.addLayout(input_layout)
+        
+        get_coordinates_button = QPushButton("坐标拾取器")
+        get_coordinates_button.setStyleSheet("background-color: #9d9d9d; color: white;")
+        get_coordinates_button.clicked.connect(open_coordinate_picker)
+        group_layout.addWidget(get_coordinates_button)
+        get_coordinates_button.setFixedSize(150, 30)
+        group_layout.addStretch(1)
+        group_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
+
+    
+        
         group_box.setLayout(group_layout)
         layout.addWidget(group_box)
         tab.setLayout(layout)
