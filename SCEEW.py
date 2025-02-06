@@ -180,11 +180,13 @@ def settings_update(
     except:
         error_report()
 
+
 def open_coordinate_picker():
     try:
         webbrowser.open("https://lbs.qq.com/getPoint/")
     except:
         error_report()
+
 
 def create_general_tab():
     try:
@@ -299,7 +301,7 @@ def create_general_tab():
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
         group_layout.addLayout(input_layout)
-        
+
         get_coordinates_button = QPushButton("坐标拾取器")
         get_coordinates_button.setStyleSheet("background-color: #9d9d9d; color: white;")
         get_coordinates_button.clicked.connect(open_coordinate_picker)
@@ -310,8 +312,6 @@ def create_general_tab():
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
         )
 
-    
-        
         group_box.setLayout(group_layout)
         layout.addWidget(group_box)
         tab.setLayout(layout)
@@ -329,7 +329,7 @@ def create_about_tab():
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
         label = QLabel(
-            f"感谢使用 SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于 GPL-3.0 协议开源\n版权所有 (C) Wolfx Studio.\nGithub: https://github.com/TenkyuChimata/SCEEW"
+            f"感谢使用 SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于 GPL-3.0 协议开源\nGithub: https://github.com/TenkyuChimata/SCEEW"
         )  # noqa: E501
         label.setStyleSheet("color: white;")
         set_font(label, 12)
@@ -588,7 +588,7 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.2.0"
+    version = "1.2.1"
     websocket = None
     audio_bool = True
     config_updated = False
