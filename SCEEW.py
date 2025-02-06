@@ -10,7 +10,6 @@ import websockets
 import webbrowser
 
 from threading import Thread
-from sys import exit
 from os import path as os_path
 from pygame import mixer
 from PyQt6.QtCore import Qt
@@ -18,21 +17,38 @@ from plyer import notification
 from datetime import datetime, timedelta
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import (
-     QApplication,
-     QMainWindow,
-     QLabel,
-     QWidget,
-     QVBoxLayout,
-     QHBoxLayout,
-     QPushButton,
-     QTabWidget,
-     QGroupBox,
-     QLineEdit,
-     QCheckBox,
-     QMessageBox)
+    QApplication,
+    QMainWindow,
+    QLabel,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QTabWidget,
+    QGroupBox,
+    QLineEdit,
+    QCheckBox,
+    QMessageBox,
+)
 
 
-settings_window, location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None, None   # noqa: E501
+(
+    settings_window,
+    location_value,
+    latitude_value,
+    longitude_value,
+    audio_value,
+    auto_window_value,
+    notification_value,
+) = (
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+    None,
+)  # noqa: E501
 with open("errors.log", "w", encoding="utf-8") as f:
     pass  # 这里写了也没用, mode为w直接清了
 
@@ -54,8 +70,11 @@ def get_update(window):
         version_json = requests.get(version_url, timeout=5).json()
         latest_version = version_json["version"]
         if int(latest_version.replace(".", "")) > int(version.replace(".", "")):
-            reply = QMessageBox.question(window, f"四川地震预警(SCEEW) v{version}",
-                                         f"检测到新版本v{latest_version}, 是否前往更新?")
+            reply = QMessageBox.question(
+                window,
+                f"四川地震预警(SCEEW) v{version}",
+                f"检测到新版本v{latest_version}, 是否前往更新?",
+            )
             if reply == QMessageBox.StandardButton.Yes:
                 webbrowser.open("https://github.com/TenkyuChimata/SCEEW/releases")
                 closeEvent(None)
@@ -80,8 +99,8 @@ def get_config():
         if os_path.exists("config.json"):
             with open("config.json", "r", encoding="utf-8") as f:
                 config_data = json.load(f)
-            #config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], \
-            #config_data["latitude"], config_data["longitude"]  这是啥啊一点用没有
+            # config_data["audio"], config_data["auto_window"], config_data["notification"], config_data["location"], \
+            # config_data["latitude"], config_data["longitude"]  这是啥啊一点用没有
             return config_data
         else:
             raise KeyError("Incomplete")
@@ -92,7 +111,7 @@ def get_config():
             "notification": True,
             "location": "成都市青羊区",
             "latitude": 30.68,
-            "longitude": 104.05
+            "longitude": 104.05,
         }
         with open("config.json", "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False)
@@ -112,28 +131,54 @@ def save_settings(event):
                 "notification": notification_value,
                 "location": location_value,
                 "latitude": latitude_value,
-                "longitude": longitude_value
+                "longitude": longitude_value,
             }
             with open("config.json", "w", encoding="utf-8") as f:
                 json.dump(config_data, f, ensure_ascii=False)
             config_updated = True
             if websocket:
                 asyncio.run(websocket.send("query_sceew"))
-            location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value = None, None, None, None, None, None  # noqa: E501
+            (
+                location_value,
+                latitude_value,
+                longitude_value,
+                audio_value,
+                auto_window_value,
+                notification_value,
+            ) = (
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )  # noqa: E501
     except:
         error_report()
 
 
-def settings_update(location_input, latitude_input, longitude_input, audio_checkbox, auto_window_checkbox,
-                    notification_checkbox):
+def settings_update(
+    location_input,
+    latitude_input,
+    longitude_input,
+    audio_checkbox,
+    auto_window_checkbox,
+    notification_checkbox,
+):
     global location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value
     try:
         notification_value = notification_checkbox.isChecked()
         audio_value = audio_checkbox.isChecked()
         auto_window_value = auto_window_checkbox.isChecked()
-        location_value = location_input.text() if location_input.text() else "成都市青羊区"
-        latitude_value = float(latitude_input.text()) if latitude_input.text() else 30.68
-        longitude_value = float(longitude_input.text()) if longitude_input.text() else 104.05
+        location_value = (
+            location_input.text() if location_input.text() else "成都市青羊区"
+        )
+        latitude_value = (
+            float(latitude_input.text()) if latitude_input.text() else 30.68
+        )
+        longitude_value = (
+            float(longitude_input.text()) if longitude_input.text() else 104.05
+        )
     except:
         error_report()
 
@@ -150,22 +195,43 @@ def create_general_tab():
         notification_checkbox.setChecked(config["notification"])
         notification_checkbox.setStyleSheet("color: white;")
         notification_checkbox.stateChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         group_layout.addWidget(notification_checkbox)
         audio_checkbox = QCheckBox("启用音效")
         audio_checkbox.setChecked(config["audio"])
         audio_checkbox.setStyleSheet("color: white;")
         audio_checkbox.stateChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         group_layout.addWidget(audio_checkbox)
         auto_window_checkbox = QCheckBox("收到预警时自动弹出窗口")
         auto_window_checkbox.setChecked(config["auto_window"])
         auto_window_checkbox.setStyleSheet("color: white;")
         auto_window_checkbox.stateChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         group_layout.addWidget(auto_window_checkbox)
         location_label = QLabel("所在地名")
         set_font(location_label, 12)
@@ -175,8 +241,15 @@ def create_general_tab():
         location_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         location_input.setFixedWidth(150)
         location_input.textChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         latitude_label = QLabel("所在地纬度")
         set_font(latitude_label, 12)
         latitude_label.setStyleSheet("color: white;")
@@ -185,8 +258,15 @@ def create_general_tab():
         latitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         latitude_input.setFixedWidth(150)
         latitude_input.textChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         longitude_label = QLabel("所在地经度")
         set_font(longitude_label, 12)
         longitude_label.setStyleSheet("color: white;")
@@ -195,8 +275,15 @@ def create_general_tab():
         longitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
         longitude_input.setFixedWidth(150)
         longitude_input.textChanged.connect(
-            lambda: settings_update(location_input, latitude_input, longitude_input, audio_checkbox,
-                                    auto_window_checkbox, notification_checkbox))
+            lambda: settings_update(
+                location_input,
+                latitude_input,
+                longitude_input,
+                audio_checkbox,
+                auto_window_checkbox,
+                notification_checkbox,
+            )
+        )
         input_layout = QVBoxLayout()
         input_layout.addWidget(location_label)
         input_layout.addWidget(location_input)
@@ -205,7 +292,9 @@ def create_general_tab():
         input_layout.addWidget(longitude_label)
         input_layout.addWidget(longitude_input)
         input_layout.addStretch(1)
-        input_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        input_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
         group_layout.addLayout(input_layout)
         group_box.setLayout(group_layout)
         layout.addWidget(group_box)
@@ -224,7 +313,8 @@ def create_about_tab():
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
         label = QLabel(
-            f"感谢使用SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于GPL-3.0协议开源\n版权所有 (C) Wolfx Studio.\nGithub: https://github.com/TenkyuChimata/SCEEW")   # noqa: E501
+            f"感谢使用SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于GPL-3.0协议开源\n版权所有 (C) Wolfx Studio.\nGithub: https://github.com/TenkyuChimata/SCEEW"
+        )  # noqa: E501
         label.setStyleSheet("color: white;")
         set_font(label, 12)
         label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
@@ -251,7 +341,8 @@ def open_settings_window():
             tab_widget = QTabWidget()
             tab_widget.addTab(create_general_tab(), "一般")
             tab_widget.addTab(create_about_tab(), "关于")
-            tab_widget.setStyleSheet("""
+            tab_widget.setStyleSheet(
+                """
             @font-face {
                 font-family: SDK_SC_Web;
                 src: url("./assets/fonts/SDK_SC_Web.ttf") format("truetype");
@@ -276,7 +367,8 @@ def open_settings_window():
             QTabBar::tab:selected {
                 background: #9d9d9d;
                 color: white;
-            }""")
+            }"""
+            )
             layout.addWidget(tab_widget)
             settings_window.setLayout(layout)
         settings_window.closeEvent = save_settings
@@ -286,7 +378,7 @@ def open_settings_window():
 
 
 def closeEvent(event):
-    exit(0)
+    QApplication.quit()
 
 
 def alert(type, level):
@@ -315,8 +407,9 @@ def distance(lat1, lon1, lat2, lon2):
         radius = 6378.137
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(math.radians(lat1)) * math.cos(
-            math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
+        a = math.sin(dlat / 2) * math.sin(dlat / 2) + math.cos(
+            math.radians(lat1)
+        ) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) * math.sin(dlon / 2)
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         d = radius * c
         return d
@@ -337,11 +430,19 @@ def countdown(user_location, distance, ctime):
                 s_countdown = 0
                 cycle = False
             if s_countdown:
-                subcdinfo_text.setText(f"地震横波还有 {s_countdown} 秒抵达{user_location}")
+                subcdinfo_text.setText(
+                    f"地震横波还有 {s_countdown} 秒抵达{user_location}"
+                )
             else:
                 subcdinfo_text.setText(f"地震横波已抵达{user_location}")
             if s_countdown == 9:
-                thread5 = Thread(target=alert, args=("countdown", 0,))
+                thread5 = Thread(
+                    target=alert,
+                    args=(
+                        "countdown",
+                        0,
+                    ),
+                )
                 thread5.start()
             time.sleep(1)
     except:
@@ -351,7 +452,9 @@ def countdown(user_location, distance, ctime):
 def timer():
     while True:
         try:
-            info_text.setText(f"四川地震局  {get_bjt().strftime('%H:%M:%S')}  中国地震预警网")
+            info_text.setText(
+                f"四川地震局  {get_bjt().strftime('%H:%M:%S')}  中国地震预警网"
+            )
         except:
             error_report()
             continue
@@ -375,28 +478,51 @@ async def sceew(window):
                         eqtime = sceew_json["OriginTime"]
                         location = sceew_json["HypoCenter"]
                         magnitude = sceew_json["Magunitude"]
-                        eqdistance = distance(sceew_json["Latitude"], sceew_json["Longitude"], config["latitude"],
-                                              config["longitude"])
+                        eqdistance = distance(
+                            sceew_json["Latitude"],
+                            sceew_json["Longitude"],
+                            config["latitude"],
+                            config["longitude"],
+                        )
                         maxshindo = sceew_json["MaxIntensity"]
                         reportnum = sceew_json["ReportNum"]
-                        cnshindo = max(1.92 + 1.63 * magnitude - 3.49 * math.log(eqdistance, 10), 0.0)
+                        cnshindo = max(
+                            1.92 + 1.63 * magnitude - 3.49 * math.log(eqdistance, 10),
+                            0.0,
+                        )
                         eqloc_text.setText(f"震中\n{location}\n{int(eqdistance)}km")
                         eqmag_text.setText(f"震级\nM{magnitude}\n烈度{maxshindo}")
-                        eqtime_text.setText(f"时间\n{eqtime[0:10].replace('-', '.')}\n{eqtime[-8:]}")
+                        eqtime_text.setText(
+                            f"时间\n{eqtime[0:10].replace('-', '.')}\n{eqtime[-8:]}"
+                        )
                         if 1.0 <= cnshindo < 2.0:
-                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有轻微震感，无需采取措施")
+                            tips_text.setText(
+                                f"注意：本地烈度{cnshindo:.1f}，有轻微震感，无需采取措施"
+                            )
                             message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有轻微震感，无需采取措施。"  # noqa: E501
                         elif cnshindo < 4.0:
-                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有较强震感，请合理避险")
+                            tips_text.setText(
+                                f"注意：本地烈度{cnshindo:.1f}，有较强震感，请合理避险"
+                            )
                             message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有较强震感，请合理避险！"  # noqa: E501
                         elif cnshindo >= 4.0:
-                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，有强烈震感，请合理避险")
+                            tips_text.setText(
+                                f"注意：本地烈度{cnshindo:.1f}，有强烈震感，请合理避险"
+                            )
                             message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有强烈震感，请合理避险！"  # noqa: E501
                         else:
-                            tips_text.setText(f"注意：本地烈度{cnshindo:.1f}，无震感，无需采取措施")
+                            tips_text.setText(
+                                f"注意：本地烈度{cnshindo:.1f}，无震感，无需采取措施"
+                            )
                             message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"  # noqa: E501
-                        if not config_updated and (
-                            get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds < 300:
+                        if (
+                            not config_updated
+                            and (
+                                get_bjt()
+                                - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")
+                            ).seconds
+                            < 300
+                        ):
                             if config["auto_window"]:
                                 window.activateWindow()
                             if 1.0 <= cnshindo < 4.0:
@@ -408,18 +534,35 @@ async def sceew(window):
                             Thread(target=alert, args=("EEW", lvl)).start()
                             if not is_eew:
                                 is_eew = True
-                                thread3 = Thread(target=countdown, args=(user_location, eqdistance, eqtime,))
+                                thread3 = Thread(
+                                    target=countdown,
+                                    args=(
+                                        user_location,
+                                        eqdistance,
+                                        eqtime,
+                                    ),
+                                )
                                 thread3.start()
                             if config["notification"]:
                                 title = f"四川地震预警（第{reportnum}报）"
-                                notification.notify(title=title, message=message,
-                                                    app_name=f"四川地震预警(SCEEW) v{version}",
-                                                    app_icon="./assets/images/icon.ico")
+                                notification.notify(
+                                    title=title,
+                                    message=message,
+                                    app_name=f"四川地震预警(SCEEW) v{version}",
+                                    app_icon="./assets/images/icon.ico",
+                                )
                         else:
                             subcdinfo_text.setText(f"地震横波已抵达{user_location}")
                         config_updated = False
                     else:
-                        if is_eew and (get_bjt() - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")).seconds > 300:
+                        if (
+                            is_eew
+                            and (
+                                get_bjt()
+                                - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")
+                            ).seconds
+                            > 300
+                        ):
                             is_eew = False
         except:
             error_report()
@@ -427,9 +570,9 @@ async def sceew(window):
             continue
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    version = "1.1.0"
+    version = "1.2.0"
     websocket = None
     audio_bool = True
     config_updated = False
@@ -498,9 +641,9 @@ if __name__ == '__main__':
         settings_button.clicked.connect(open_settings_window)
         window.closeEvent = closeEvent
         window.show()
-        thread1 = Thread(target=timer)
+        thread1 = Thread(target=timer, daemon=True)
+        thread2 = Thread(target=asyncio.run, args=(sceew(window),), daemon=True)
         thread1.start()
-        thread2 = Thread(target=asyncio.run, args=(sceew(window),))
         thread2.start()
         app.exec()
     except:
