@@ -8,8 +8,6 @@ API: https://api.wolfx.jp
 
 **本软件基于 GPL-3.0 协议开源**
 
-**版权所有 (C) Wolfx Studio.**
-
 ## 使用
 SCEEW 跨平台可用, 我们同时提供 Nuitka 封装版
 
