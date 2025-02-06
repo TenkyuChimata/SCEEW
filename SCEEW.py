@@ -12,10 +12,10 @@ import webbrowser
 from threading import Thread
 from os import path as os_path
 from pygame import mixer
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent, QTimer
 from plyer import notification
 from datetime import datetime, timedelta
-from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase
+from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase, QAction
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -29,6 +29,8 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QCheckBox,
     QMessageBox,
+    QSystemTrayIcon,
+    QMenu,
 )
 
 
@@ -393,8 +395,18 @@ def open_settings_window():
         error_report()
 
 
-def closeEvent(event):
-    QApplication.quit()
+def custom_change_event(event):
+    if event.type() == QEvent.Type.WindowStateChange:
+        # 当窗口最小化时，延时执行隐藏操作
+        if window.isMinimized():
+            QTimer.singleShot(0, window.hide)
+    # 调用原有的 changeEvent 处理（保持其他功能正常）
+    original_change_event(event)
+
+
+def custom_close_event(event):
+    window.hide()  # 隐藏窗口，而不是退出程序
+    event.ignore()  # 忽略关闭事件，从而避免程序退出
 
 
 def alert(type, level):
@@ -655,7 +667,22 @@ if __name__ == "__main__":
         settings_button = QPushButton("⚙", window)
         settings_button.setGeometry(560, 360, 25, 25)
         settings_button.clicked.connect(open_settings_window)
-        window.closeEvent = closeEvent
+        tray_icon = QSystemTrayIcon(window)
+        tray_icon.setIcon(QIcon("./assets/images/icon.ico"))
+        tray_menu = QMenu(window)
+        restore_action = QAction("恢复", window)
+        quit_action = QAction("退出", window)
+        tray_menu.addAction(restore_action)
+        tray_menu.addAction(quit_action)
+        tray_icon.setContextMenu(tray_menu)
+        tray_icon.show()
+        restore_action.triggered.connect(
+            lambda: (window.showNormal(), window.activateWindow())
+        )
+        quit_action.triggered.connect(QApplication.quit)
+        original_change_event = window.changeEvent
+        window.changeEvent = custom_change_event
+        window.closeEvent = custom_close_event
         window.show()
         thread1 = Thread(target=timer, daemon=True)
         thread2 = Thread(target=asyncio.run, args=(sceew(window),), daemon=True)
