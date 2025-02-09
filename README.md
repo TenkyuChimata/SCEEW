@@ -25,7 +25,7 @@ pip install -r requirements.txt
 最后执行`python SCEEW.py`即可启动 SCEEW
 
 ## 封装版下载
-c
+
 * [GitHub Releases](https://github.com/TenkyuChimata/SCEEW/releases/latest)
 * [蓝奏云(密码c4jt)](https://akarin.lanzoul.com/b00rbwxgf)
 
