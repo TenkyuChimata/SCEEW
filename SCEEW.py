@@ -79,7 +79,6 @@ def get_update(window):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 webbrowser.open("https://github.com/TenkyuChimata/SCEEW/releases")
-                closeEvent(None)
     except:
         error_report()
 
@@ -409,18 +408,18 @@ def custom_close_event(event):
     event.ignore()  # 忽略关闭事件，从而避免程序退出
 
 
-def alert(type, level):
+def alert(alert_type, level):
     try:
         if audio_bool:
             mixer.init()
-            if type == "EEW":
+            if alert_type == "EEW":
                 mixer.music.load(f".//assets//sounds//EEW{level}.wav")
                 mixer.music.play()
                 while mixer.music.get_busy():
                     time.sleep(0.1)
             else:
                 mixer.music.load(".//assets//sounds//countdown.wav")
-                for i in range(15):
+                for _ in range(15):
                     mixer.music.play()
                     while mixer.music.get_busy():
                         time.sleep(0.01)

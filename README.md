@@ -4,11 +4,12 @@
 
 预警数据来源: 四川省地震局
 
-API: https://api.wolfx.jp
+API: <https://api.wolfx.jp>
 
 **本软件基于 GPL-3.0 协议开源**
 
 ## 使用
+
 SCEEW 跨平台可用, 我们同时提供 Nuitka 封装版
 
 如果需要手动安装运行, 请按照以下流程进行安装
@@ -24,9 +25,9 @@ pip install -r requirements.txt
 最后执行`python SCEEW.py`即可启动 SCEEW
 
 ## 封装版下载
-
-*   [GitHub Releases](https://github.com/TenkyuChimata/SCEEW/releases/latest)
-*   [蓝奏云(密码c4jt)](https://akarin.lanzoul.com/b00rbwxgf)
+c
+* [GitHub Releases](https://github.com/TenkyuChimata/SCEEW/releases/latest)
+* [蓝奏云(密码c4jt)](https://akarin.lanzoul.com/b00rbwxgf)
 
 ## 截图
 
