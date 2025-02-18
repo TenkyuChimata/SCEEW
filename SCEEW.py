@@ -522,26 +522,26 @@ async def sceew(window):
                         eqtime_text.setText(
                             f"时间\n{eqtime[0:10].replace('-', '.')}\n{eqtime[-8:]}"
                         )
-                        if 1.0 <= cnshindo < 2.0:
+                        if cnshindo >= 1.0 and cnshindo < 2.0:
                             tips_text.setText(
                                 f"注意：本地烈度{cnshindo:.1f}，有轻微震感，无需采取措施"
                             )
-                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有轻微震感，无需采取措施。"  # noqa: E501
-                        elif cnshindo < 4.0:
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有轻微震感，无需采取措施。"
+                        elif cnshindo >= 2.0 and cnshindo < 4.0:
                             tips_text.setText(
                                 f"注意：本地烈度{cnshindo:.1f}，有较强震感，请合理避险"
                             )
-                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有较强震感，请合理避险！"  # noqa: E501
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有较强震感，请合理避险！"
                         elif cnshindo >= 4.0:
                             tips_text.setText(
                                 f"注意：本地烈度{cnshindo:.1f}，有强烈震感，请合理避险"
                             )
-                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有强烈震感，请合理避险！"  # noqa: E501
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。有强烈震感，请合理避险！"
                         else:
                             tips_text.setText(
                                 f"注意：本地烈度{cnshindo:.1f}，无震感，无需采取措施"
                             )
-                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"  # noqa: E501
+                            message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"
                         if (
                             not config_updated
                             and (
@@ -552,7 +552,7 @@ async def sceew(window):
                         ):
                             if config["auto_window"]:
                                 window.activateWindow()
-                            if 1.0 <= cnshindo < 4.0:
+                            if cnshindo >= 1.0 and cnshindo < 4.0:
                                 lvl = 1
                             elif cnshindo >= 4.0:
                                 lvl = 2
@@ -599,7 +599,7 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.2.1"
+    version = "1.2.3"
     websocket = None
     audio_bool = True
     config_updated = False
