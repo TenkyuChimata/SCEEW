@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import re
 import json
 import time
 import math
 import asyncio
-import requests
 import traceback
 import websockets
 import webbrowser
-
+import dns.resolver
+from pygame import mixer
 from threading import Thread
 from os import path as os_path
-from pygame import mixer
-from PyQt6.QtCore import Qt, QEvent, QTimer
-from plyer import notification
-from datetime import datetime, timedelta
+from typing import Callable, Optional, Any
+from datetime import datetime, timedelta, timezone
+from PyQt6.QtCore import Qt, QEvent, QTimer, QObject
 from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase, QAction
 from PyQt6.QtWidgets import (
     QApplication,
@@ -33,6 +33,15 @@ from PyQt6.QtWidgets import (
     QMenu,
 )
 
+try:
+    from plyer import notification as _plyer_notification
+except Exception:
+    _plyer_notification = None
+
+NotifyFn = Callable[..., Any]
+notify: Optional[NotifyFn] = None
+if _plyer_notification is not None:
+    notify = getattr(_plyer_notification, "notify", None)
 
 (
     settings_window,
@@ -55,8 +64,16 @@ with open("errors.log", "w", encoding="utf-8") as f:
     pass
 
 
+BJT = timezone(timedelta(hours=8))
+
+
 def get_bjt():
-    return datetime.utcnow() + timedelta(hours=8)
+    return datetime.now(BJT)
+
+
+def parse_bjt(s: str) -> datetime:
+    """Parse 'YYYY-mm-dd HH:MM:SS' as timezone-aware Beijing Time."""
+    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S").replace(tzinfo=BJT)
 
 
 def error_report():
@@ -67,11 +84,50 @@ def error_report():
         f.write(error_time + error_log + "\n")
 
 
+def _parse_version_from_txt(txt: str) -> str | None:
+    # 支持：version=1.2.3（允许前后有其它字段）
+    m = re.search(r"version\s*=\s*([0-9]+(?:\.[0-9]+)*)", txt)
+    return m.group(1) if m else None
+
+
+def _semver_tuple(v: str):
+    # "1.2.3" -> (1,2,3)；多段也行，缺段按 0 补
+    v = re.sub(r"[^0-9.]", "", (v or "").strip())
+    if not v:
+        return (0, 0, 0)
+    return tuple(int(x) if x else 0 for x in v.split("."))
+
+
+def _fetch_version_from_dns_txt(domain: str, timeout: float = 5.0) -> str:
+    """
+    从 DNS TXT 记录中提取 version=x.x.x 的版本号并返回。
+    """
+    resolver = dns.resolver.Resolver(configure=True)
+    resolver.lifetime = timeout  # 总超时
+    resolver.timeout = timeout  # 单次超时
+
+    answers = resolver.resolve(domain, "TXT")
+
+    # 一个域名可能有多条 TXT，逐条找包含 version= 的
+    for rdata in answers:
+        # dnspython 返回的 TXT 可能是多段 string 切片，拼起来
+        parts = []
+        for s in getattr(rdata, "strings", []):
+            parts.append(s.decode("utf-8", errors="ignore"))
+        txt = "".join(parts).strip()
+
+        v = _parse_version_from_txt(txt)
+        if v:
+            return v
+
+    raise ValueError(f"TXT record for {domain} does not contain version=...")
+
+
 def get_update(window):
     try:
-        version_json = requests.get(version_url, timeout=5).json()
-        latest_version = version_json["version"]
-        if int(latest_version.replace(".", "")) > int(version.replace(".", "")):
+        latest_version = _fetch_version_from_dns_txt("sceew.mtf.edu.kg", timeout=5.0)
+
+        if _semver_tuple(latest_version) > _semver_tuple(version):
             reply = QMessageBox.question(
                 window,
                 f"四川地震预警(SCEEW) v{version}",
@@ -79,7 +135,8 @@ def get_update(window):
             )
             if reply == QMessageBox.StandardButton.Yes:
                 webbrowser.open("https://github.com/TenkyuChimata/SCEEW/releases")
-    except:
+
+    except Exception:
         error_report()
 
 
@@ -120,7 +177,7 @@ def get_config():
         return None
 
 
-def save_settings(event):
+def save_settings() -> None:
     global location_value, latitude_value, longitude_value, audio_value, auto_window_value, notification_value, config_updated  # noqa: E501
     try:
         if location_value:
@@ -197,6 +254,8 @@ def create_general_tab():
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
         config = get_config()
+        if not config:
+            return None
         notification_checkbox = QCheckBox("启用通知")
         notification_checkbox.setChecked(config["notification"])
         notification_checkbox.setStyleSheet("color: white;")
@@ -388,19 +447,23 @@ def open_settings_window():
             )
             layout.addWidget(tab_widget)
             settings_window.setLayout(layout)
-        settings_window.closeEvent = save_settings
+
+        class CloseSaveFilter(QObject):
+            def __init__(self, on_close, parent=None):
+                super().__init__(parent)
+                self._on_close = on_close
+
+            def eventFilter(self, a0, a1) -> bool:
+                if a1 is not None and a1.type() == QEvent.Type.Close:
+                    self._on_close()
+                return False
+
+        close_filter = CloseSaveFilter(on_close=save_settings, parent=settings_window)
+        settings_window.installEventFilter(close_filter)
+        settings_window.setProperty("_close_filter", close_filter)
         settings_window.show()
     except:
         error_report()
-
-
-def custom_change_event(event):
-    if event.type() == QEvent.Type.WindowStateChange:
-        # 当窗口最小化时，延时执行隐藏操作
-        if window.isMinimized():
-            QTimer.singleShot(0, window.hide)
-    # 调用原有的 changeEvent 处理（保持其他功能正常）
-    original_change_event(event)
 
 
 def custom_close_event(event):
@@ -449,10 +512,10 @@ def countdown(user_location, distance, ctime):
     try:
         cycle = True
         Stime = distance / 4
-        quaketime = datetime.strptime(ctime, "%Y-%m-%d %H:%M:%S")
+        quaketime = parse_bjt(ctime)
         Sarrivetime = quaketime + timedelta(seconds=Stime)
         while cycle:
-            s_countdown = (Sarrivetime - get_bjt()).seconds
+            s_countdown = int((Sarrivetime - get_bjt()).total_seconds())
             if s_countdown <= 0 or s_countdown >= 1200:
                 s_countdown = 0
                 cycle = False
@@ -489,6 +552,7 @@ def timer():
 
 
 async def sceew(window):
+    eqtime = None
     is_eew = False
     global audio_bool, config_updated, websocket
     while True:
@@ -500,6 +564,8 @@ async def sceew(window):
                     if sceew_json["type"] != "heartbeat":
                         print(sceew_json)
                         config = get_config()
+                        if not config:
+                            continue
                         audio_bool = config["audio"]
                         user_location = config["location"]
                         eqtime = sceew_json["OriginTime"]
@@ -544,11 +610,7 @@ async def sceew(window):
                             message = f"{eqtime} {location}发生M{magnitude}地震，最大预估烈度{maxshindo}度，本地预估烈度{cnshindo:.1f}度。无震感，无需采取措施。"
                         if (
                             not config_updated
-                            and (
-                                get_bjt()
-                                - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")
-                            ).seconds
-                            < 300
+                            and (get_bjt() - parse_bjt(eqtime)).total_seconds() < 300
                         ):
                             if config["auto_window"]:
                                 window.activateWindow()
@@ -570,9 +632,9 @@ async def sceew(window):
                                     ),
                                 )
                                 thread3.start()
-                            if config["notification"]:
+                            if config.get("notification", False) and notify is not None:
                                 title = f"四川地震预警（第{reportnum}报）"
-                                notification.notify(
+                                notify(
                                     title=title,
                                     message=message,
                                     app_name=f"四川地震预警(SCEEW) v{version}",
@@ -584,11 +646,8 @@ async def sceew(window):
                     else:
                         if (
                             is_eew
-                            and (
-                                get_bjt()
-                                - datetime.strptime(eqtime, "%Y-%m-%d %H:%M:%S")
-                            ).seconds
-                            > 300
+                            and eqtime is not None
+                            and (get_bjt() - parse_bjt(eqtime)).total_seconds() > 300
                         ):
                             is_eew = False
         except:
@@ -599,7 +658,7 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.2.3"
+    version = "1.3.0"
     websocket = None
     audio_bool = True
     config_updated = False
@@ -607,7 +666,15 @@ if __name__ == "__main__":
 
     try:
         app = QApplication([])
-        window = QMainWindow()
+
+        class MainWindow(QMainWindow):
+            def changeEvent(self, a0: QEvent | None) -> None:
+                if a0 is not None and a0.type() == QEvent.Type.WindowStateChange:
+                    if self.isMinimized():
+                        QTimer.singleShot(0, self.hide)
+                super().changeEvent(a0)
+
+        window = MainWindow()
         window.setWindowTitle(f"四川地震预警(SCEEW) v{version}")
         window.setFixedSize(600, 400)
         window.setWindowIcon(QIcon("./assets/images/icon.ico"))
@@ -617,7 +684,8 @@ if __name__ == "__main__":
         window.setCentralWidget(central_widget)
         layout = QVBoxLayout()
         central_widget.setLayout(layout)
-        title_text = QLabel("四川地震预警", alignment=Qt.AlignmentFlag.AlignCenter)
+        title_text = QLabel("四川地震预警")
+        title_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_text.setStyleSheet("color: white; padding-top: 10px;")
         set_font(title_text, 25)
         layout.addWidget(title_text)
@@ -625,11 +693,13 @@ if __name__ == "__main__":
         warn_icon.setPixmap(QPixmap("./assets/images/warn.png"))
         warn_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(warn_icon)
-        subcdinfo_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        subcdinfo_text = QLabel("")
+        subcdinfo_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subcdinfo_text.setStyleSheet("color: white;")
         set_font(subcdinfo_text, 20)
         layout.addWidget(subcdinfo_text)
-        tips_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        tips_text = QLabel("")
+        tips_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         tips_text.setStyleSheet("color: white;")
         set_font(tips_text, 15)
         layout.addWidget(tips_text)
@@ -639,7 +709,8 @@ if __name__ == "__main__":
         eqloc_frame.setStyleSheet("background-color: #9d9d9d;")
         eq_info_layout.addWidget(eqloc_frame)
         eqloc_layout = QVBoxLayout(eqloc_frame)
-        eqloc_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        eqloc_text = QLabel("")
+        eqloc_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         eqloc_text.setStyleSheet("color: white;")
         set_font(eqloc_text, 15)
         eqloc_layout.addWidget(eqloc_text)
@@ -647,7 +718,8 @@ if __name__ == "__main__":
         eqmag_frame.setStyleSheet("background-color: #9d9d9d;")
         eq_info_layout.addWidget(eqmag_frame)
         eqmag_layout = QVBoxLayout(eqmag_frame)
-        eqmag_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        eqmag_text = QLabel("")
+        eqmag_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         eqmag_text.setStyleSheet("color: white;")
         set_font(eqmag_text, 15)
         eqmag_layout.addWidget(eqmag_text)
@@ -655,11 +727,13 @@ if __name__ == "__main__":
         eqtime_frame.setStyleSheet("background-color: #9d9d9d;")
         eq_info_layout.addWidget(eqtime_frame)
         eqtime_layout = QVBoxLayout(eqtime_frame)
-        eqtime_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        eqtime_text = QLabel("")
+        eqtime_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         eqtime_text.setStyleSheet("color: white;")
         set_font(eqtime_text, 15)
         eqtime_layout.addWidget(eqtime_text)
-        info_text = QLabel("", alignment=Qt.AlignmentFlag.AlignCenter)
+        info_text = QLabel("")
+        info_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         info_text.setStyleSheet("color: white;")
         set_font(info_text, 15)
         layout.addWidget(info_text)
@@ -679,9 +753,6 @@ if __name__ == "__main__":
             lambda: (window.showNormal(), window.activateWindow())
         )
         quit_action.triggered.connect(QApplication.quit)
-        original_change_event = window.changeEvent
-        window.changeEvent = custom_change_event
-        window.closeEvent = custom_close_event
         window.show()
         thread1 = Thread(target=timer, daemon=True)
         thread2 = Thread(target=asyncio.run, args=(sceew(window),), daemon=True)
