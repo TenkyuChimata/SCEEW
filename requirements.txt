@@ -1,6 +1,6 @@
 dnspython>=2.8.0
 plyer>=2.1.0
 pygame>=2.6.1
-PyQt6>=6.10.1
-pyqt6_sip>=13.10.3
+PySide6>=6.10.1
+PySide6.egg>=info
 websockets>=15.0.1

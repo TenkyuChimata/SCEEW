@@ -1,7 +1,8 @@
 Linux
 
-nuitka --onefile --standalone --lto=yes --follow-imports --include-package=websockets --enable-plugin=pyqt6 SCEEW.py
+nuitka --onefile --standalone --lto=yes --follow-imports --enable-plugin=pyside6 --include-package=websockets SCEEW.py
+
 
 Windows
 
-nuitka --onefile --standalone --windows-console-mode=disable --windows-icon-from-ico=./assets/images/icon.ico --windows-product-name="SCEEW" --windows-product-version="1.3.0" --lto=yes --follow-imports --include-package=websockets --enable-plugin=pyqt6 SCEEW.py
+nuitka --onefile --standalone --windows-console-mode=disable --windows-icon-from-ico=./assets/images/icon.ico --windows-product-name="SCEEW" --windows-product-version="1.3.1" --lto=yes --follow-imports --enable-plugin=pyside6 --include-package=websockets SCEEW.py

@@ -14,9 +14,9 @@ from threading import Thread
 from os import path as os_path
 from typing import Callable, Optional, Any
 from datetime import datetime, timedelta, timezone
-from PyQt6.QtCore import Qt, QEvent, QTimer, QObject
-from PyQt6.QtGui import QPixmap, QIcon, QFont, QFontDatabase, QAction
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QEvent, QTimer, QObject
+from PySide6.QtGui import QPixmap, QIcon, QFont, QFontDatabase, QAction
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QLabel,
@@ -246,19 +246,68 @@ def open_coordinate_picker():
         error_report()
 
 
-def create_general_tab():
+def create_general_tab() -> QWidget:
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+
     try:
-        tab = QWidget()
-        layout = QVBoxLayout()
+        config = get_config()
+        if not config:
+            # 占位内容：配置不可用，但仍返回 QWidget
+            msg = QLabel("配置加载失败：请检查配置文件是否存在/格式是否正确。")
+            msg.setStyleSheet("color: white;")
+            msg.setWordWrap(True)
+            layout.addWidget(msg)
+
+            retry = QPushButton("重试")
+            retry.setStyleSheet("background-color: #9d9d9d; color: white;")
+            retry.clicked.connect(lambda: None)
+            layout.addWidget(retry, alignment=Qt.AlignmentFlag.AlignLeft)
+
+            layout.addStretch(1)
+            return tab
+
         group_box = QGroupBox("设定")
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
-        config = get_config()
-        if not config:
-            return None
+
         notification_checkbox = QCheckBox("启用通知")
         notification_checkbox.setChecked(config["notification"])
         notification_checkbox.setStyleSheet("color: white;")
+
+        audio_checkbox = QCheckBox("启用音效")
+        audio_checkbox.setChecked(config["audio"])
+        audio_checkbox.setStyleSheet("color: white;")
+
+        auto_window_checkbox = QCheckBox("收到预警时自动弹出窗口")
+        auto_window_checkbox.setChecked(config["auto_window"])
+        auto_window_checkbox.setStyleSheet("color: white;")
+
+        location_label = QLabel("所在地名")
+        set_font(location_label, 12)
+        location_label.setStyleSheet("color: white;")
+        location_input = QLineEdit()
+        location_input.setText(config["location"])
+        location_input.setStyleSheet("background-color: #9d9d9d; color: white;")
+        location_input.setFixedWidth(150)
+
+        latitude_label = QLabel("所在地纬度")
+        set_font(latitude_label, 12)
+        latitude_label.setStyleSheet("color: white;")
+        latitude_input = QLineEdit()
+        latitude_input.setText(str(config["latitude"]))
+        latitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
+        latitude_input.setFixedWidth(150)
+
+        longitude_label = QLabel("所在地经度")
+        set_font(longitude_label, 12)
+        longitude_label.setStyleSheet("color: white;")
+        longitude_input = QLineEdit()
+        longitude_input.setText(str(config["longitude"]))
+        longitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
+        longitude_input.setFixedWidth(150)
+
+        # 现在这些变量都已经创建好了，再 connect（避免原来“引用未定义变量”的风险）
         notification_checkbox.stateChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -269,10 +318,6 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
-        group_layout.addWidget(notification_checkbox)
-        audio_checkbox = QCheckBox("启用音效")
-        audio_checkbox.setChecked(config["audio"])
-        audio_checkbox.setStyleSheet("color: white;")
         audio_checkbox.stateChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -283,10 +328,6 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
-        group_layout.addWidget(audio_checkbox)
-        auto_window_checkbox = QCheckBox("收到预警时自动弹出窗口")
-        auto_window_checkbox.setChecked(config["auto_window"])
-        auto_window_checkbox.setStyleSheet("color: white;")
         auto_window_checkbox.stateChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -297,14 +338,6 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
-        group_layout.addWidget(auto_window_checkbox)
-        location_label = QLabel("所在地名")
-        set_font(location_label, 12)
-        location_label.setStyleSheet("color: white;")
-        location_input = QLineEdit()
-        location_input.setText(config["location"])
-        location_input.setStyleSheet("background-color: #9d9d9d; color: white;")
-        location_input.setFixedWidth(150)
         location_input.textChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -315,13 +348,6 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
-        latitude_label = QLabel("所在地纬度")
-        set_font(latitude_label, 12)
-        latitude_label.setStyleSheet("color: white;")
-        latitude_input = QLineEdit()
-        latitude_input.setText(str(config["latitude"]))
-        latitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
-        latitude_input.setFixedWidth(150)
         latitude_input.textChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -332,13 +358,6 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
-        longitude_label = QLabel("所在地经度")
-        set_font(longitude_label, 12)
-        longitude_label.setStyleSheet("color: white;")
-        longitude_input = QLineEdit()
-        longitude_input.setText(str(config["longitude"]))
-        longitude_input.setStyleSheet("background-color: #9d9d9d; color: white;")
-        longitude_input.setFixedWidth(150)
         longitude_input.textChanged.connect(
             lambda: settings_update(
                 location_input,
@@ -349,6 +368,11 @@ def create_general_tab():
                 notification_checkbox,
             )
         )
+
+        group_layout.addWidget(notification_checkbox)
+        group_layout.addWidget(audio_checkbox)
+        group_layout.addWidget(auto_window_checkbox)
+
         input_layout = QVBoxLayout()
         input_layout.addWidget(location_label)
         input_layout.addWidget(location_input)
@@ -365,8 +389,9 @@ def create_general_tab():
         get_coordinates_button = QPushButton("坐标拾取器")
         get_coordinates_button.setStyleSheet("background-color: #9d9d9d; color: white;")
         get_coordinates_button.clicked.connect(open_coordinate_picker)
-        group_layout.addWidget(get_coordinates_button)
         get_coordinates_button.setFixedSize(150, 30)
+        group_layout.addWidget(get_coordinates_button)
+
         group_layout.addStretch(1)
         group_layout.setAlignment(
             Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
@@ -374,34 +399,62 @@ def create_general_tab():
 
         group_box.setLayout(group_layout)
         layout.addWidget(group_box)
-        tab.setLayout(layout)
+        layout.addStretch(1)
         return tab
-    except:
+
+    except Exception:
         error_report()
-        return None
+        # 兜底：同样返回占位 Tab，而不是 None
+        msg = QLabel("发生异常：请查看日志/错误报告。")
+        msg.setStyleSheet("color: white;")
+        msg.setWordWrap(True)
+        layout.addWidget(msg)
+        layout.addStretch(1)
+        return tab
 
 
-def create_about_tab():
+def create_about_tab() -> QWidget:
+    tab = QWidget()
+    layout = QVBoxLayout(tab)
+
     try:
-        tab = QWidget()
-        layout = QVBoxLayout()
         group_box = QGroupBox("关于")
         group_box.setStyleSheet("QGroupBox:title {color: white;}")
         group_layout = QVBoxLayout()
+
         label = QLabel(
-            f"感谢使用 SCEEW v{version}\n开发者: TenkyuChimata\n预警数据来源: 四川省地震局\nAPI: https://api.wolfx.jp\n本软件基于 GPL-3.0 协议开源\nGithub: https://github.com/TenkyuChimata/SCEEW"
-        )  # noqa: E501
+            f"感谢使用 SCEEW v{version}\n"
+            f"开发者: TenkyuChimata\n"
+            f"预警数据来源: 四川省地震局\n"
+            f"API: https://api.wolfx.jp\n"
+            f"本软件基于 GPL-3.0 协议开源\n"
+            f"Github: https://github.com/TenkyuChimata/SCEEW"
+        )
         label.setStyleSheet("color: white;")
         set_font(label, 12)
+        label.setWordWrap(True)
         label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
         group_layout.addWidget(label)
         group_box.setLayout(group_layout)
+
         layout.addWidget(group_box)
-        tab.setLayout(layout)
+        layout.addStretch(1)
         return tab
-    except:
+
+    except Exception:
         error_report()
-        return None
+
+        # 兜底：不要返回 None，返回一个带错误提示的 QWidget
+        fail = QLabel("关于页面加载失败，请查看错误报告/日志。")
+        fail.setStyleSheet("color: white;")
+        set_font(fail, 12)
+        fail.setWordWrap(True)
+        fail.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+
+        layout.addWidget(fail)
+        layout.addStretch(1)
+        return tab
 
 
 def open_settings_window():
@@ -658,7 +711,7 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.3.0"
+    version = "1.3.1"
     websocket = None
     audio_bool = True
     config_updated = False
@@ -668,11 +721,11 @@ if __name__ == "__main__":
         app = QApplication([])
 
         class MainWindow(QMainWindow):
-            def changeEvent(self, a0: QEvent | None) -> None:
-                if a0 is not None and a0.type() == QEvent.Type.WindowStateChange:
+            def changeEvent(self, event: QEvent) -> None:
+                if event.type() == QEvent.Type.WindowStateChange:
                     if self.isMinimized():
                         QTimer.singleShot(0, self.hide)
-                super().changeEvent(a0)
+                super().changeEvent(event)
 
         window = MainWindow()
         window.setWindowTitle(f"四川地震预警(SCEEW) v{version}")
