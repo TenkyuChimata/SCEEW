@@ -8,8 +8,8 @@ import asyncio
 import traceback
 import websockets
 import webbrowser
-import simpleaudio
 import dns.resolver
+from pygame import mixer
 from threading import Thread
 from os import path as os_path
 from typing import Callable, Optional, Any
@@ -527,18 +527,22 @@ def custom_close_event(event):
 def alert(alert_type, level):
     try:
         if audio_bool:
+            mixer.init()
             if alert_type == "EEW":
-                simpleaudio.WaveObject.from_wave_file(
-                    f"./assets/sounds/EEW{level}.wav"
-                ).play().wait_done()
+                mixer.music.load(f".//assets//sounds//EEW{level}.wav")
+                mixer.music.play()
+                while mixer.music.get_busy():
+                    time.sleep(0.1)
             else:
-                wave_obj = simpleaudio.WaveObject.from_wave_file(
-                    "./assets/sounds/countdown.wav"
-                )
+                mixer.music.load(".//assets//sounds//countdown.wav")
                 for _ in range(15):
-                    wave_obj.play().wait_done()
-    except Exception:
+                    mixer.music.play()
+                    while mixer.music.get_busy():
+                        time.sleep(0.01)
+            mixer.quit()
+    except:
         error_report()
+        mixer.quit()
 
 
 def distance(lat1, lon1, lat2, lon2):
@@ -707,10 +711,11 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.3.2"
+    version = "1.3.1"
     websocket = None
     audio_bool = True
     config_updated = False
+    version_url = "https://tenkyuchimata.github.io/SCEEW/version.json"
 
     try:
         app = QApplication([])
