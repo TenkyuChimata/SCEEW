@@ -623,7 +623,7 @@ async def sceew(window):
                         user_location = config["location"]
                         eqtime = sceew_json["OriginTime"]
                         location = sceew_json["HypoCenter"]
-                        magnitude = sceew_json["Magunitude"]
+                        magnitude = sceew_json["Magnitude"]
                         eqdistance = distance(
                             sceew_json["Latitude"],
                             sceew_json["Longitude"],
@@ -711,7 +711,7 @@ async def sceew(window):
 
 if __name__ == "__main__":
 
-    version = "1.3.1"
+    version = "1.3.2"
     websocket = None
     audio_bool = True
     config_updated = False
